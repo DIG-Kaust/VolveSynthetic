@@ -6,7 +6,12 @@ testing of seismic processing and imaging algorithms.
 
 ## Project structure
 This repository is organized as follows:
+
 * **Data**: directory containing all the datasets that we have generated in .npz format.
+* **Inversion**: directory containing a jupyter notebook to perform poststack inversion and save the velocity model used for modelling.
+* **Modelling**: directory containing Madagascar scripts for modelling.
+* **Imaging**: directory containing Madagascar scripts for imaging.
+
 
 A better visual understanding of how the various components are put together is provided by the following figure.
 
@@ -19,7 +24,7 @@ rely on tools provided by the PyLops framework for inverse problems.
 
 
 ## Getting started
-We envision to levels of users: *basic* and *advanced*.
+We envision two levels of users: *basic* and *advanced*.
 
 Basic users simply want to access the data that we have already modelled, alongside the velocity model and images. Such users should head over to
 the `Visualization` directory where they will be able to see how the different files created in this repository can be loaded and visualized in Python.
