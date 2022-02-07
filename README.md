@@ -1,5 +1,8 @@
 # VolveSynthetic
 
+![VolveSynthetic](https://github.com/DIG-Kaust/VolveSynthetic/blob/master/Figures/workflow.png)
+
+
 This repository contains a set of workflows used to generate a Volve-alike synthetic dataset for 
 testing of seismic processing and imaging algorithms.
 
