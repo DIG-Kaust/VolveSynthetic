@@ -6,18 +6,18 @@
 This repository contains a set of workflows used to generate a Volve-alike synthetic dataset for 
 testing of seismic processing and imaging algorithms.
 
+**NOTE**: due to their large size, the various datasets cannot be shared directly in this repository.
+If interested, contact the authors directly!
 
 ## Project structure
 This repository is organized as follows:
 
-* **Data**: directory containing all the datasets that we have generated in .npz format.
+* **Data**: directory containing all the datasets that we have generated in .npz and/or binary format.
 * **Inversion**: directory containing a jupyter notebook to perform poststack inversion and save the velocity model used for modelling.
 * **Modelling**: directory containing Madagascar scripts for modelling.
 * **Imaging**: directory containing Madagascar scripts for imaging.
 
-
-A better visual understanding of how the various components are put together is provided by the following figure.
-
+A visual description of how the various components is provided by the figure at the top of the README fine.
 
 ## Used software
 As part of this project, we have used 2 main pieces of software:
