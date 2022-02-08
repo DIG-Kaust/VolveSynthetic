@@ -1,0 +1,295 @@
+##############################################################
+#### Volve synthetic data creation
+####
+#### Author: Matteo Ravasi
+##############################################################
+from rsf.proj import *
+import fdmod
+
+par = {
+    'nx':1200, 'ox':2800.0,  'dx':5, 'lx':'x', 'ux':'km',	#horizontal axis
+    'nz':900,  'oz':0.0,  'dz':5, 'lz':'z', 'uz':'km',	    #vertical axis	
+    'nt':10001, 'ot':0.00, 'dt':0.0005,'lt':'t', 'ut':'s',	#time axis	
+    'kt':601,
+    'jsnap':10001,'nbell':1,
+    'frq':20,'ompnth':9,
+    'ratio':1
+    }
+fdmod.param(par)
+
+# ------------------------------------------------------------
+# Velocity
+# ------------------------------------------------------------
+
+# velocity model (m/s)
+vel_file='../Data/Velocity/vel.bin'
+Flow('vp',vel_file,
+	 '''
+	 echo o1=%(oz)g d1=%(dz)g n1=900 o2=0 d2=%(dx)g n2=2190 in=${SOURCES[0]} data_format=float | 
+     dd form=native | window n2=%(nx)d f2=560 | put o2=%(ox)g
+	 ''' % par)  
+Flow('vp_sm','vp','smooth rect1=15 rect2=15 repeat=5')
+
+# velocity model without sea (m/s)
+vel_file='../Data/Velocity/vel_inv_nosea.bin'
+Flow('vp_nosea',vel_file,
+	 '''
+	 echo o1=%(oz)g d1=%(dz)g n1=900 o2=0 d2=%(dx)g n2=2190 in=${SOURCES[0]} data_format=float | 
+     dd form=native | window n2=%(nx)d f2=560 | put o2=%(ox)g
+	 ''' % par)  
+Flow('vp_nosea_sm','vp_nosea','smooth rect1=15 rect2=15 repeat=5')
+
+# velocity with just seafloor (m/s)
+Flow('vp_seafloor', 'vp', 'math output="1900"')
+
+Plot('vp', fdmod.cgrey('''allpos=y bias=1000 pclip=99.9 title=Survey\ Design 
+                  	   color=j titlesz=6 labelsz=4 wheretitle=t barrevers=y''',par))
+Plot('vp_sm', fdmod.cgrey('''allpos=y bias=1000 pclip=99.9 title=Survey\ Design 
+                  	      color=j titlesz=6 labelsz=4 wheretitle=t barrevers=y''',par))
+Plot('vp_nosea', fdmod.cgrey('''allpos=y bias=1000 pclip=99.9 title=Survey\ Design 
+                  	         color=j titlesz=6 labelsz=4 wheretitle=t barrevers=y''',par))
+
+# ------------------------------------------------------------
+# Density,  Compressibility
+# ------------------------------------------------------------
+
+# density (g/m^3)sc
+Flow('rho', 'vp', 'math output="1000"')
+
+# compressibility
+Flow('com', ['vp', 'rho'], 'math rho=${SOURCES[1]} output="(rho*input^2)"')
+Flow('com_nosea', ['vp_nosea', 'rho'], 'math rho=${SOURCES[1]} output="(rho*input^2)"')
+Flow('com_seafloor', ['vp_seafloor', 'rho'], 'math rho=${SOURCES[1]} output="(rho*input^2)"')
+
+# ------------------------------------------------------------
+# SOURCES/RECEIVERS/IMAGE
+# ------------------------------------------------------------
+
+# sources
+s_file='../Data/Velocity/s.bin'
+Flow('s',s_file,
+	 '''
+	 echo o1=2 d1=1 n1=2 o2=0 d2=1 n2=120 in=${SOURCES[0]} data_format=float | 
+     dd form=native | window n2=110
+	 ''' % par)  
+
+# receivers
+r_file='../Data/Velocity/r.bin'
+Flow('r',r_file,
+	 '''
+	 echo o1=2 d1=1 n1=2 o2=0 d2=1 n2=180 in=${SOURCES[0]} data_format=float | 
+     dd form=native 
+	 ''' % par)  
+
+# image coordinates
+par['nqz']=401
+par['oqz']=par['oz']
+par['dqz']=10
+par['nqx']=551
+par['oqx']=3000
+par['dqx']=10
+fdmod.boxarray('q', par['nqz'], par['oqz'], par['dqz'], par['nqx'], par['oqx'], par['dqx'], par)
+
+Plot('r',fdmod.rrplot('',par))
+Plot('s',fdmod.ssplot('',par))
+Plot('q',fdmod.ssplot('',par))
+
+Result('vp', ['vp','r','s'],'Overlay')
+Result('vp_q', ['vp','r','s', 'q'],'Overlay')
+Result('vp_sm', ['vp_sm','r','s'],'Overlay')
+Result('vp_nosea', ['vp_nosea','r','s'],'Overlay')
+
+Result('vp_image', 'vp','window n1=801 n2=1101 f2=40 | grey title="Velocity in image" bias=1000 pclip=99.9 color=j ') 
+
+# Make  wavelet
+fdmod.wavelet('wav_ricker',par['frq'],par)
+Flow('wav_flat','wav_flatspectrum.su','segyread su=y endian=n | put o1=0 d1=0.0005 | remap1 o1=%(ot)g d1=%(dt)g n1=4001 | pad n1=%(nt)d' % par)
+Result('wav_flat','put d1=1 | graph  grid1=y grid2=y ')
+
+Flow('wav_on','wav_ricker', 'math output=input*1')
+Flow('wav_off','wav_ricker','math output=input*0')
+
+Flow('wavflat_on','wav_flat', 'math output=input*1')
+Flow('wavflat_off','wav_flat','math output=input*0')
+
+Flow('wavq',['wav_off','wav_off','wav_on'],
+     '''
+     cat axis=2 space=n ${SOURCES[1:3]} |
+     transp plane=12 |
+     transp plane=23 |
+     transp plane=12
+     ''' % par)
+
+Flow('wavflatq',['wavflat_off','wavflat_off','wavflat_on'],
+     '''
+     cat axis=2 space=n ${SOURCES[1:3]} |
+     transp plane=12 |
+     transp plane=23 |
+     transp plane=12
+     ''' % par)
+     
+Flow('wavf',['wav_on','wav_off','wav_off'],
+     '''
+     cat axis=2 space=n ${SOURCES[1:3]} |
+     transp plane=12 |
+     transp plane=23 |
+     transp plane=12
+     ''' % par)
+     
+# ------------------------------------------------------------
+# MODELING
+# ------------------------------------------------------------
+n_shots=110
+shots=range(n_shots)
+par['free']='y'
+
+for i_shot in range(0,2*n_shots):
+
+    Flow('s'+str(i_shot),'s','window n2=1 f2=%d' % i_shot)
+
+    # Full model
+    Flow(['dat_full'+str(i_shot),'wfl_full'+str(i_shot)],['wavq','com','rho','s'+str(i_shot),'r'],
+	     '''
+	     vafdmod3
+	     ompchunk=%(ompchunk)d ompnth=%(ompnth)d 
+	     verb=y free=%(free)s snap=%(snap)s jsnap=%(jsnap)d
+	     abc=y nb=100 nbell=%(nbell)d
+	     com=${SOURCES[1]}
+	     den=${SOURCES[2]}
+	     sou=${SOURCES[3]}
+	     rec=${SOURCES[4]}
+	     wfl=${TARGETS[1]} |
+	     window j3=4 | window f3=150 | put o3=0
+	     ''' % par)  
+	     
+alldata  =  map(lambda x: 'dat_full%d' % x, shots)
+Flow('dat_full',alldata,'add ${SOURCES[0:%d]}'%n_shots)
+
+
+# ------------------------------------------------------------
+# MODELING WITHOUT FREE-SURFACE
+# ------------------------------------------------------------
+n_shots=110
+shots=range(n_shots)
+par['free']='n'
+
+for i_shot in range(0,2*n_shots):
+
+    Flow('s'+str(i_shot),'s','window n2=1 f2=%d' % i_shot)
+
+    # Full model
+    Flow(['dat_nofs_full'+str(i_shot),'wfl_nofs_full'+str(i_shot)],['wavq','com','rho','s'+str(i_shot),'r'],
+	     '''
+	     vafdmod3
+	     ompchunk=%(ompchunk)d ompnth=%(ompnth)d 
+	     verb=y free=%(free)s snap=%(snap)s jsnap=%(jsnap)d
+	     abc=y nb=100 nbell=%(nbell)d
+	     com=${SOURCES[1]}
+	     den=${SOURCES[2]}
+	     sou=${SOURCES[3]}
+	     rec=${SOURCES[4]}
+	     wfl=${TARGETS[1]} |
+	     window j3=4 | window f3=150 | put o3=0
+	     ''' % par)  
+	     
+alldata  =  map(lambda x: 'dat_nofs_full%d' % x, shots)
+Flow('dat_nofs_full',alldata,'add ${SOURCES[0:%d]}'%n_shots)
+
+
+# ------------------------------------------------------------
+# MODELING REFERENCE FOR MDD
+# ------------------------------------------------------------
+n_shots=180
+shots=range(n_shots)
+par['free']='n'
+
+for i_shot in range(0,2*n_shots):
+
+    Flow('r'+str(i_shot),'r','window n2=1 f2=%d' % i_shot)
+
+    # Full model
+    Flow(['dat_nosea_full'+str(i_shot),'wfl_nosea_full'+str(i_shot)],['wavq','  ','rho','r'+str(i_shot),'r'],
+	     '''
+	     vafdmod3
+	     ompchunk=%(ompchunk)d ompnth=%(ompnth)d 
+	     verb=y free=%(free)s snap=%(snap)s jsnap=%(jsnap)d
+	     abc=y nb=100 nbell=%(nbell)d
+	     com=${SOURCES[1]}
+	     den=${SOURCES[2]}
+	     sou=${SOURCES[3]}
+	     rec=${SOURCES[4]}
+	     wfl=${TARGETS[1]} |
+	     window j3=4 | window f3=150 | put o3=0
+	     ''' % par)  
+
+	# Full model with flat wav
+    Flow(['dat_noseaflat_full'+str(i_shot),'wfl_noseaflat_full'+str(i_shot)],['wavflatq','com_nosea','rho','r'+str(i_shot),'r'],
+	     '''
+	     vafdmod3
+	     ompchunk=%(ompchunk)d ompnth=%(ompnth)d 
+	     verb=y free=%(free)s snap=%(snap)s jsnap=%(jsnap)d
+	     abc=y nb=100 nbell=%(nbell)d
+	     com=${SOURCES[1]}
+	     den=${SOURCES[2]}
+	     sou=${SOURCES[3]}
+	     rec=${SOURCES[4]}
+	     wfl=${TARGETS[1]} |
+	     window j3=4 | window f3=150 | put o3=0
+	     ''' % par)  
+	     
+	# Ref model with flat wav
+    Flow(['dat_noseaflat_ref'+str(i_shot),'wfl_noseaflat_ref'+str(i_shot)],['wavflatq','com_seafloor','rho','r'+str(i_shot),'r'],
+	     '''
+	     vafdmod3
+	     ompchunk=%(ompchunk)d ompnth=%(ompnth)d 
+	     verb=y free=%(free)s snap=%(snap)s jsnap=%(jsnap)d
+	     abc=y nb=100 nbell=%(nbell)d
+	     com=${SOURCES[1]}
+	     den=${SOURCES[2]}
+	     sou=${SOURCES[3]}
+	     rec=${SOURCES[4]}
+	     wfl=${TARGETS[1]} |
+	     window j3=4 | window f3=150 | put o3=0
+	     ''' % par)  
+
+alldata  =  map(lambda x: 'dat_nosea_full%d' % x, shots)
+Flow('dat_nosea_full',alldata,'add ${SOURCES[0:%d]}'%n_shots)
+
+
+# ------------------------------------------------------------
+# LOAD PROCESSED DATA
+# ------------------------------------------------------------
+
+# up pressure data
+n_shots=110
+shots=range(n_shots)
+
+for i_shot in range(0,n_shots):
+	p_file='../Data/Processing/pup_synth_shot%d.bin' % i_shot
+	Flow('pup%d' % i_shot, p_file,
+		 '''
+		 echo o2=0 d2=0.002 n2=2351 o1=0 d1=1 n1=180 in=${SOURCES[0]} data_format=float | 
+		 dd form=native
+		 ''' % par) 
+
+alldata  =  map(lambda x: 'pup%d' % x, shots)
+Flow('pupall',alldata,'add ${SOURCES[0:%d]}'%n_shots)
+
+# rmdd data
+n_shots=180
+shots=range(n_shots)
+
+for i_shot in range(0,n_shots):
+	p_file='../Data/Processing/rmdd_synth_shot%d.bin' % i_shot
+	Flow('rmdd%d' % i_shot, p_file,
+		 '''
+		 echo o2=0 d2=0.002 n2=1901 o1=0 d1=1 n1=180 in=${SOURCES[0]} data_format=float | 
+		 dd form=native
+		 ''' % par) 
+
+alldata  =  map(lambda x: 'rmdd%d' % x, shots)
+Flow('rmddall',alldata,'add ${SOURCES[0:%d]}'%n_shots)
+
+
+End()
+
