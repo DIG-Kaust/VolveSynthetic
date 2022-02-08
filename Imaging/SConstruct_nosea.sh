@@ -6,9 +6,8 @@
 #........................................................
 
 # madagascar directories
-mada_path='/home/ravasim/Documents/Madagascar/RSF/bin'
-export DATAPATH='/home/ravasim/Documents/Madagascar/RSFTMP/'
-path_source='/home/ravasim/Documents/Madagascar/RSFSRC/book/mrava/mddstoch/volve_synthdata'
+mada_path=$MADAPATH
+path_source=$SOURCEPATH
 
 nt=10001
 
@@ -16,8 +15,7 @@ date >> log
 for is in {0..180..1} 
 do
 
-echo $is 
-echo $is >> log
+echo "Working with source $is" >> log
 date >> log
 
 # full wavefield
