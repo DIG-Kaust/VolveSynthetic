@@ -12,11 +12,13 @@ If interested, contact the authors directly!
 ## Project structure
 This repository is organized as follows:
 
-* **Data**: directory containing all the datasets that we have generated in .npz and/or binary format.
 * **Inversion**: directory containing a jupyter notebook to perform poststack inversion and save the velocity model used for modelling.
 * **Modelling**: directory containing Madagascar scripts for modelling.
 * **Processing**: directory containing Python notebooks for processing.
 * **Imaging**: directory containing Madagascar scripts for imaging.
+* **Visualization**: directory containing Python used to visualize the generated data.
+* **Data**: directory containing all the datasets that we have generated in .npz and/or binary format.
+* **Figures**: directory containing all figures created in the Python scripts.
 
 A visual description of the various components is provided in the figure at the top of the README fine.
 
