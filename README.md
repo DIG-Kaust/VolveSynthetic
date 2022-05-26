@@ -3,8 +3,9 @@
 This repository contains a set of workflows used to generate a Volve-alike synthetic dataset for 
 testing of seismic processing and imaging algorithms.
 
-**NOTE**: due to their large size, the various datasets cannot be shared directly in this repository.
-If interested, contact the authors directly!
+**NOTE**: due to their large size, the dataset cannot be shared directly in this repository. 
+You can however download it from this [Zenodo link](https://zenodo.org/record/6572286#.Yotw7XUzbds) and place its content into the Data directory.
+
 
 ## Project structure
 This repository is organized as follows:
