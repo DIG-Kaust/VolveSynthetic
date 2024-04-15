@@ -13,7 +13,7 @@ This repository is organized as follows:
 * **Inversion**: directory containing a jupyter notebook to perform poststack inversion and save the velocity model used for modelling.
 * **Modelling**: directory containing Madagascar scripts for modelling.
 * **Processing**: directory containing Python notebooks for processing.
-* **Imaging**: directory containing Madagascar scripts for imaging.
+* **Imaging**: directory containing Madagascar scripts and Python codes for imaging.
 * **Visualization**: directory containing Python used to visualize the generated data.
 * **Data**: directory containing all the datasets that we have generated in .npz and/or binary format.
 * **Figures**: directory containing all figures created in the Python scripts.
@@ -22,7 +22,7 @@ A visual description of the various components is provided in the figure at the 
 
 ## Used software
 As part of this project, we have used 2 main pieces of software:
-* **Python**: used for visualization purposes as well as to create the sharp velocity model and process seismic data (i.e., up/down sepatation and deconvolution). In both cases we rely on tools provided by the PyLops framework for inverse problems.
+* **Python**: used to create the sharp velocity model by seismic inversion, process seismic data (i.e., up/down sepatation and deconvolution), imaging and visualization. In all cases we rely on tools provided by the PyLops framework for inverse problems.
 * **Madagascar**: used for modelling and imaging. More specifically, we use a vector-acoustic (i.e., first-order staggered grid acoustic wave equation) FD modelling code for modelling, and a acoustic FD modelling code for imaging.
 
 
